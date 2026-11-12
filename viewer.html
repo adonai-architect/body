@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#050508" />
+  <title>myfamiliar.ai</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #050508;
+      --text: #f4f6fb;
+      --muted: #9aa3b5;
+      --cyan: #00f2ff;
+      --violet: #b066ff;
+      --amber: #ff9900;
+      --border: rgba(255, 255, 255, 0.08);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); }
+    body {
+      font: 16px/1.45 Inter, system-ui, sans-serif;
+      background:
+        radial-gradient(900px 500px at 85% 20%, rgba(0, 242, 255, 0.08), transparent 60%),
+        radial-gradient(700px 420px at 10% 80%, rgba(176, 102, 255, 0.07), transparent 55%),
+        radial-gradient(600px 400px at 70% 90%, rgba(255, 153, 0, 0.05), transparent 50%),
+        var(--bg);
+    }
+    .ambient {
+      pointer-events: none; position: fixed; inset: 0; z-index: 0; opacity: 0.35;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+    }
+    main {
+      position: relative; z-index: 1;
+      height: 100dvh; width: 100%;
+      display: flex; flex-direction: column; gap: 0.7rem;
+      padding: max(0.7rem, env(safe-area-inset-top)) max(0.7rem, env(safe-area-inset-right)) max(0.7rem, env(safe-area-inset-bottom)) max(0.7rem, env(safe-area-inset-left));
+    }
+    header { display: flex; align-items: center; justify-content: space-between; min-height: 2.75rem; }
+    .wordmark { margin: 0; font-weight: 700; font-size: 1.15rem; letter-spacing: -0.02em; text-decoration: none; }
+    .wm-name { color: var(--cyan); text-shadow: 0 0 18px rgba(0, 242, 255, 0.45); }
+    .wm-ai { color: var(--amber); text-shadow: 0 0 16px rgba(255, 153, 0, 0.4); }
+    .still {
+      background: linear-gradient(105deg, var(--violet) 0%, #ffffff 70%);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      filter: drop-shadow(0 0 22px rgba(176, 102, 255, 0.35));
+    }
+    .tuned { color: var(--cyan); text-shadow: 0 0 28px rgba(0, 242, 255, 0.45); }
+    .mono-line { font-family: "JetBrains Mono", ui-monospace, monospace; letter-spacing: 0.04em; color: rgba(255, 153, 0, 0.85); font-weight: 500; }
+    .ham { min-width: 2.75rem; min-height: 2.75rem; border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.32rem; cursor: pointer; }
+    .ham i { display: block; width: 1.35rem; height: 1px; background: var(--text); }
+    nav { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: var(--radius); background: rgba(18, 18, 24, 0.55); overflow: hidden; }
+    nav button, .tabs button, .add, .pick { cursor: pointer; }
+    nav button { min-height: 2.75rem; text-align: left; background: transparent; color: var(--text); border: 0; border-bottom: 1px solid var(--border); padding: 0 0.8rem; font: inherit; }
+    nav button:last-child { border-bottom: 0; }
+    nav b { font-family: "JetBrains Mono", monospace; font-weight: 500; color: var(--cyan); margin-right: 0.7rem; }
+    .intro, .panel {
+      flex: 1; min-height: 0; border-radius: 18px;
+      border: 1px solid var(--border);
+      background: rgba(18, 18, 24, 0.55);
+      backdrop-filter: blur(16px);
+    }
+    .tone-cyan { border-color: rgba(0, 242, 255, 0.35); box-shadow: 0 0 28px rgba(0, 242, 255, 0.08); }
+    .tone-violet { border-color: rgba(176, 102, 255, 0.4); box-shadow: 0 0 28px rgba(176, 102, 255, 0.1); }
+    .tone-amber { border-color: rgba(255, 153, 0, 0.4); box-shadow: 0 0 28px rgba(255, 153, 0, 0.1); }
+    .intro { position: relative; overflow: hidden; }
+    .glow {
+      position: absolute; inset: 12% 18%; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(circle at 35% 45%, rgba(0, 242, 255, 0.28), transparent 50%),
+        radial-gradient(circle at 70% 50%, rgba(255, 153, 0, 0.2), transparent 48%),
+        radial-gradient(circle at 50% 50%, rgba(176, 102, 255, 0.2), transparent 55%);
+      filter: blur(22px);
+    }
+    .intro img, .intro canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; z-index: 1; }
+    .sticks { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+    .stick {
+      pointer-events: auto; touch-action: none;
+      position: absolute; bottom: 0.85rem;
+      width: 96px; height: 96px; border-radius: 50%;
+      background: rgba(0, 0, 0, 0.38);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+    }
+    #stick-move { left: 0.85rem; }
+    #stick-look { right: 0.85rem; }
+    .stick i {
+      position: absolute; left: 50%; top: 50%;
+      width: 26px; height: 26px; margin: -13px 0 0 -13px;
+      border-radius: 50%; background: rgba(244, 246, 251, 0.9);
+    }
+    h2 { margin: 0; font-size: clamp(1.7rem, 7vw, 2.4rem); font-weight: 800; letter-spacing: -0.045em; line-height: 1.02; }
+    .muted { color: var(--muted); }
+    .stack { display: flex; flex-direction: column; line-height: 1.05; }
+    .stack .wm-name, .stack .wm-ai { font-size: 0.72rem; font-weight: 700; }
+    .tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.4rem; }
+    .tabs button {
+      min-height: 3.25rem; padding: 0.2rem; border-radius: 18px;
+      border: 1px solid var(--border); background: rgba(18, 18, 24, 0.55);
+      color: var(--text); font: 700 0.72rem/1.1 Inter, sans-serif;
+    }
+    .tabs button.on { background: rgba(10, 12, 18, 0.8); }
+    .panel { padding: 1rem; display: flex; flex-direction: column; }
+    .log, ul { list-style: none; margin: 0.7rem 0 0; padding: 0; overflow: auto; display: flex; flex-direction: column; gap: 0.45rem; }
+    .log li { align-self: flex-end; max-width: 85%; border: 1px solid rgba(0, 242, 255, 0.28); border-radius: 14px; padding: 0.45rem 0.65rem; }
+    .log li.you { align-self: flex-start; border-color: rgba(255, 255, 255, 0.18); background: rgba(255, 255, 255, 0.04); }
+    form, .row { margin-top: auto; display: flex; gap: 0.5rem; padding-top: 0.8rem; }
+    input[type="text"] {
+      min-height: 2.75rem; min-width: 0; flex: 1; border-radius: 14px;
+      border: 1px solid var(--border); background: rgba(10, 12, 18, 0.75);
+      color: var(--text); padding: 0 0.75rem; font: inherit; outline: none;
+    }
+    input::placeholder { color: var(--muted); }
+    .add, .pick {
+      border: 0; border-radius: 14px; background: var(--cyan); color: #050508;
+      font-weight: 700; min-height: 2.75rem; padding: 0 0.9rem;
+    }
+    .kinds { display: flex; gap: 0.4rem; margin-top: 0.8rem; }
+    .kinds button {
+      flex: 1; min-height: 2.5rem; border-radius: 14px;
+      border: 1px solid var(--border); background: transparent; color: var(--text); font: inherit; cursor: pointer;
+    }
+    .kinds button.on { border-color: rgba(176, 102, 255, 0.55); color: var(--violet); }
+    #file { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .sound {
+      min-height: 2.25rem;
+      border-radius: 14px;
+      border: 1px solid rgba(0, 242, 255, 0.45);
+      background: #050508;
+      color: var(--cyan);
+      font: 700 0.8rem/1 Inter, system-ui, sans-serif;
+      padding: 0 0.75rem;
+      cursor: pointer;
+    }
+    .gate {
+      position: fixed; inset: 0; z-index: 30;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 0.85rem; padding: 1.5rem; text-align: center;
+      background: rgba(5, 5, 8, 0.82); backdrop-filter: blur(10px);
+    }
+    .gate[hidden] { display: none !important; }
+    .gate-line { margin: 0; font-size: clamp(1.35rem, 4vw, 2rem); font-weight: 700; letter-spacing: -0.03em; }
+    .gate button {
+      min-height: 2.75rem; border-radius: 14px;
+      border: 1px solid rgba(0, 242, 255, 0.45); background: #050508; color: var(--cyan);
+      font: 700 0.95rem/1 Inter, system-ui, sans-serif; padding: 0 1.1rem; cursor: pointer;
+    }
+    video::-webkit-media-controls { display: none !important; }
+    [hidden] { display: none !important; }
+    .transport {
+      position: absolute; left: 0.7rem; right: 0.7rem; bottom: 0.7rem; z-index: 2;
+      display: flex; justify-content: space-between; gap: 0.6rem;
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-size: 0.72rem; letter-spacing: 0.04em; color: var(--cyan);
+    }
+  </style>
+</head>
+<body>
+  <div class="ambient" aria-hidden="true"></div>
+  <main>
+    <header>
+      <p class="wordmark"><span class="wm-name">myfamiliar</span><span class="wm-ai">.ai</span></p>
+      <button class="sound" type="button" id="sound" hidden>Sound off</button>
+      <button class="ham" type="button" aria-label="Menu" aria-expanded="false"><i></i><i></i><i></i></button>
+    </header>
+    <nav id="menu" hidden>
+      <button type="button" data-go="chat"><b>1</b>Chat</button>
+      <button type="button" data-go="upload"><b>2</b>Upload</button>
+      <button type="button" data-go="mine"><b>3</b>my Familiar</button>
+      <button type="button" data-go="media"><b>4</b>Forg3D</button>
+      <button type="button" data-go="five"><b>5</b></button>
+    </nav>
+    <section class="intro tone-cyan" id="player">
+      <span class="glow" aria-hidden="true"></span>
+      <img id="still" src="/rom/boot.png?v=5" alt="" />
+      <canvas id="face"></canvas>
+      <div class="sticks" id="sticks">
+        <div class="stick" id="stick-move"><i></i></div>
+        <div class="stick" id="stick-look"><i></i></div>
+      </div>
+    </section>
+    <div class="tabs" role="tablist">
+      <button type="button" class="tone-cyan" data-tab="chat"><span class="tuned">Chat</span></button>
+      <button type="button" class="tone-violet" data-tab="upload"><span class="still">Upload</span></button>
+      <button type="button" class="tone-amber" data-tab="mine"><span class="stack"><span class="wm-name">my</span><span class="wm-ai">Familiar</span></span></button>
+      <button type="button" class="tone-amber" data-tab="media"><span class="mono-line">Forg3D</span></button>
+      <button type="button" data-tab="five"></button>
+    </div>
+    <section class="panel tone-cyan" id="panel">
+      <h2 id="title"><span class="tuned">Chat</span></h2>
+      <ul class="log" id="log"></ul>
+      <ul id="files" hidden></ul>
+      <p class="muted" id="note"></p>
+      <div class="kinds" id="kinds" hidden>
+        <button type="button" data-kind="image">Image</button>
+        <button type="button" data-kind="video">Video</button>
+        <button type="button" data-kind="3d">3D</button>
+      </div>
+      <form id="form">
+        <input id="draft" type="text" maxlength="500" placeholder="Say it" />
+        <button class="add" type="submit">Send</button>
+      </form>
+      <div class="row" id="uprow" hidden>
+        <input id="file" type="file" multiple accept="image/*,video/*,audio/*,application/*,text/*,.glb,.gltf,.obj,.stl,.fbx,.usdz,.heic,.mov,.mp4,.webm,.mp3,.wav,.aac,.pdf,.zip" />
+        <button class="pick" type="button" id="pick">Choose files</button>
+      </div>
+    </section>
+  </main>
+  <div class="gate" id="gate">
+    <p class="gate-line">Welcome to <span class="wm-name">myfamiliar</span><span class="wm-ai">.ai</span></p>
+    <button type="button" id="start" onclick="document.getElementById('gate').hidden=true">Press start</button>
+  </div>
+  <script>
+    const TITLES = { chat: "Chat", upload: "Upload", mine: "my Familiar", media: "Forg3D", five: "" };
+    const KEY = "mf_ui_v3";
+    let state = { tab: "chat", chat: [], files: [], kind: "image" };
+    try { state = Object.assign(state, JSON.parse(localStorage.getItem(KEY) || "null") || {}); } catch (e) {}
+    const menu = document.getElementById("menu");
+    const ham = document.querySelector(".ham");
+    const title = document.getElementById("title");
+    const log = document.getElementById("log");
+    const files = document.getElementById("files");
+    const note = document.getElementById("note");
+    const kinds = document.getElementById("kinds");
+    const form = document.getElementById("form");
+    const draft = document.getElementById("draft");
+    const uprow = document.getElementById("uprow");
+    const file = document.getElementById("file");
+    function persist() {
+      localStorage.setItem(KEY, JSON.stringify({ tab: state.tab, chat: state.chat, files: state.files, kind: state.kind }));
+    }
+    function paint() {
+      document.querySelectorAll("[data-tab]").forEach((btn) => btn.classList.toggle("on", btn.dataset.tab === state.tab));
+      const marks = {
+        chat: '<span class="tuned">Chat</span>',
+        upload: '<span class="still">Upload</span>',
+        mine: '<span class="wm-name">my</span> <span class="wm-ai">Familiar</span>',
+        media: '<span class="mono-line">Forg3D</span>',
+        five: ""
+      };
+      const tones = { chat: "tone-cyan", upload: "tone-violet", mine: "tone-amber", media: "tone-amber", five: "" };
+      title.innerHTML = marks[state.tab] || "";
+      const panel = document.getElementById("panel");
+      panel.classList.remove("tone-cyan", "tone-violet", "tone-amber");
+      if (tones[state.tab]) panel.classList.add(tones[state.tab]);
+      const chat = state.tab === "chat";
+      const upload = state.tab === "upload";
+      const media = state.tab === "media";
+      const mine = state.tab === "mine";
+      form.hidden = !chat && !media;
+      uprow.hidden = !upload;
+      log.hidden = !chat;
+      files.hidden = !upload;
+      kinds.hidden = !media;
+      draft.placeholder = media ? "What to make" : "Say it";
+      document.querySelector(".add").textContent = media ? "Make" : "Send";
+      kinds.querySelectorAll("button").forEach((btn) => btn.classList.toggle("on", btn.dataset.kind === state.kind));
+      note.textContent = "";
+      if (chat) {
+        log.replaceChildren();
+        state.chat.forEach((item) => {
+          const who = item && item.who === "you" ? "you" : "him";
+          const text = item && item.text ? item.text : "";
+          if (!text) return;
+          const li = document.createElement("li");
+          li.className = who;
+          li.textContent = text;
+          log.append(li);
+        });
+      } else if (upload) {
+        files.replaceChildren();
+        (state.files || []).forEach((item) => {
+          const li = document.createElement("li");
+          li.textContent = item.name + " · " + (item.type || "file");
+          files.append(li);
+        });
+      }
+    }
+    ham.addEventListener("click", () => {
+      menu.hidden = !menu.hidden;
+      ham.setAttribute("aria-expanded", String(!menu.hidden));
+    });
+    document.querySelectorAll("[data-go], [data-tab]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.tab = btn.dataset.go || btn.dataset.tab;
+        draft.value = "";
+        menu.hidden = true;
+        ham.setAttribute("aria-expanded", "false");
+        persist();
+        paint();
+      });
+    });
+    kinds.addEventListener("click", (ev) => {
+      const btn = ev.target.closest("[data-kind]");
+      if (!btn) return;
+      state.kind = btn.dataset.kind;
+      persist();
+      paint();
+    });
+    document.getElementById("pick").addEventListener("click", () => file.click());
+    file.addEventListener("change", () => {
+      const next = Array.from(file.files || []).map((f) => ({ name: f.name, type: f.type || "unknown type", size: f.size }));
+      state.files = next.concat(state.files || []).slice(0, 40);
+      file.value = "";
+      persist();
+      paint();
+    });
+    form.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const text = draft.value.trim();
+      if (!text) return;
+      if (state.tab !== "chat") {
+        draft.value = "";
+        persist();
+        paint();
+        return;
+      }
+      draft.value = "";
+      state.chat = state.chat.concat({ who: "you", text: text }).slice(-40);
+      persist();
+      paint();
+      note.textContent = "sending to A";
+      try {
+        const res = await fetch("/api/say", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text }),
+        });
+        const data = await res.json();
+        if (!data.ok) {
+          note.textContent = "not delivered";
+        } else if (data.text) {
+          state.chat = state.chat.concat({ who: "him", text: data.text }).slice(-40);
+          persist();
+          paint();
+          note.textContent = "";
+        } else {
+          note.textContent = "";
+        }
+      } catch {
+        note.textContent = "not delivered";
+      }
+    });
+    paint();
+    const face = document.getElementById("face");
+    const gate = document.getElementById("gate");
+    const gl = face.getContext("webgl", { antialias: true, alpha: true });
+    let yaw = 0;
+    let pitch = 0;
+    let px = 0;
+    let py = 1.55;
+    let pz = 2.45;
+    let ready = false;
+    let bufN = 0;
+    let driving = false;
+    const axes = { move: [0, 0], look: [0, 0] };
+    const heldSticks = new Set();
+
+    function fit() {
+      const box = face.parentElement.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = Math.max(2, Math.floor(box.width * dpr));
+      const h = Math.max(2, Math.floor(box.height * dpr));
+      if (face.width !== w || face.height !== h) {
+        face.width = w;
+        face.height = h;
+        if (gl) gl.viewport(0, 0, w, h);
+      }
+    }
+
+    function perspective(fovy, aspect, near, far) {
+      const f = 1 / Math.tan(fovy / 2);
+      const nf = 1 / (near - far);
+      return new Float32Array([
+        f / aspect, 0, 0, 0,
+        0, f, 0, 0,
+        0, 0, (far + near) * nf, -1,
+        0, 0, (2 * far * near) * nf, 0,
+      ]);
+    }
+
+    function lookAt(eye, at) {
+      let zx = eye[0] - at[0], zy = eye[1] - at[1], zz = eye[2] - at[2];
+      const zl = Math.hypot(zx, zy, zz) || 1;
+      zx /= zl; zy /= zl; zz /= zl;
+      let xx = zz, xy = 0, xz = -zx;
+      const xl = Math.hypot(xx, xy, xz) || 1;
+      xx /= xl; xy /= xl; xz /= xl;
+      const yx = zy * xz - zz * xy;
+      const yy = zz * xx - zx * xz;
+      const yz = zx * xy - zy * xx;
+      return new Float32Array([
+        xx, yx, zx, 0,
+        xy, yy, zy, 0,
+        xz, yz, zz, 0,
+        -(xx * eye[0] + xy * eye[1] + xz * eye[2]),
+        -(yx * eye[0] + yy * eye[1] + yz * eye[2]),
+        -(zx * eye[0] + zy * eye[1] + zz * eye[2]),
+        1,
+      ]);
+    }
+
+    function multiply(a, b) {
+      const o = new Float32Array(16);
+      for (let c = 0; c < 4; c++) {
+        for (let r = 0; r < 4; r++) {
+          o[c * 4 + r] = a[r] * b[c * 4] + a[4 + r] * b[c * 4 + 1] + a[8 + r] * b[c * 4 + 2] + a[12 + r] * b[c * 4 + 3];
+        }
+      }
+      return o;
+    }
+
+    function shader(type, src) {
+      const s = gl.createShader(type);
+      gl.shaderSource(s, src);
+      gl.compileShader(s);
+      return s;
+    }
+
+    function drawBody() {
+      if (!gl || !ready) return;
+      fit();
+      if (face.width < 8 || face.height < 8) return;
+      document.getElementById("still").hidden = true;
+      const cp = Math.cos(pitch), sp = Math.sin(pitch);
+      const eye = [px, py, pz];
+      const at = [px + Math.sin(yaw) * cp, py + sp, pz - Math.cos(yaw) * cp];
+      const proj = perspective(0.72, face.width / face.height, 0.08, 20);
+      const view = lookAt(eye, at);
+      gl.uniformMatrix4fv(gl.uMvp, false, multiply(proj, view));
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.drawElements(gl.TRIANGLES, bufN, gl.UNSIGNED_SHORT, 0);
+    }
+
+    async function boot() {
+      if (!gl) return;
+      const res = await fetch("/rom/body.bin?v=14");
+      if (!res.ok) return;
+      const buf = await res.arrayBuffer();
+      const view = new DataView(buf);
+      if (String.fromCharCode(view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3)) !== "BODY") return;
+      const nv = view.getUint32(4, true);
+      const ni = view.getUint32(8, true);
+      const pos = new Float32Array(buf, 12, nv * 3);
+      const nrm = new Float32Array(buf, 12 + nv * 12, nv * 3);
+      const colAt = 12 + nv * 24;
+      const col = new Uint8Array(buf, colAt, nv * 3);
+      let idxAt = colAt + nv * 3;
+      if (idxAt % 2) idxAt += 1;
+      const idx = new Uint16Array(buf, idxAt, ni);
+      const prog = gl.createProgram();
+      gl.attachShader(prog, shader(gl.VERTEX_SHADER, `
+        attribute vec3 aPos;
+        attribute vec3 aNrm;
+        attribute vec3 aCol;
+        uniform mat4 uMvp;
+        varying vec3 vN;
+        varying vec3 vCol;
+        void main() {
+          vN = aNrm;
+          vCol = aCol;
+          gl_Position = uMvp * vec4(aPos, 1.0);
+        }
+      `));
+      gl.attachShader(prog, shader(gl.FRAGMENT_SHADER, `
+        precision mediump float;
+        varying vec3 vN;
+        varying vec3 vCol;
+        void main() {
+          vec3 n = normalize(vN);
+          vec3 L = normalize(vec3(0.25, 0.75, 0.45));
+          float nd = clamp(dot(n, L), 0.0, 1.0);
+          gl_FragColor = vec4(vCol * (0.42 + 0.75 * nd), 1.0);
+        }
+      `));
+      gl.linkProgram(prog);
+      if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return;
+      gl.useProgram(prog);
+      gl.uMvp = gl.getUniformLocation(prog, "uMvp");
+      const bPos = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, bPos);
+      gl.bufferData(gl.ARRAY_BUFFER, pos, gl.STATIC_DRAW);
+      const aPos = gl.getAttribLocation(prog, "aPos");
+      gl.enableVertexAttribArray(aPos);
+      gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, 0, 0);
+      const bNrm = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, bNrm);
+      gl.bufferData(gl.ARRAY_BUFFER, nrm, gl.STATIC_DRAW);
+      const aNrm = gl.getAttribLocation(prog, "aNrm");
+      gl.enableVertexAttribArray(aNrm);
+      gl.vertexAttribPointer(aNrm, 3, gl.FLOAT, false, 0, 0);
+      const bCol = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, bCol);
+      gl.bufferData(gl.ARRAY_BUFFER, col, gl.STATIC_DRAW);
+      const aCol = gl.getAttribLocation(prog, "aCol");
+      gl.enableVertexAttribArray(aCol);
+      gl.vertexAttribPointer(aCol, 3, gl.UNSIGNED_BYTE, true, 0, 0);
+      const bIdx = gl.createBuffer();
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bIdx);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW);
+      bufN = ni;
+      gl.enable(gl.DEPTH_TEST);
+      gl.clearColor(0.027, 0.027, 0.035, 1);
+      ready = true;
+      fit();
+      if (face.width < 8 || face.height < 8) return;
+      document.getElementById("still").hidden = true;
+      drawBody();
+    }
+
+    document.getElementById("start").addEventListener("click", () => {
+      gate.hidden = true;
+      boot();
+    });
+
+    function stickAxis(stick, clientX, clientY) {
+      const box = stick.getBoundingClientRect();
+      const cx = box.left + box.width / 2;
+      const cy = box.top + box.height / 2;
+      const radius = box.width * 0.36;
+      let dx = clientX - cx;
+      let dy = clientY - cy;
+      const len = Math.hypot(dx, dy) || 1;
+      const mag = Math.min(1, len / radius);
+      dx = (dx / len) * mag;
+      dy = (dy / len) * mag;
+      const knob = stick.querySelector("i");
+      knob.style.transform = "translate(" + (dx * radius) + "px," + (dy * radius) + "px)";
+      const dead = 0.14;
+      const ax = Math.abs(dx) < dead ? 0 : dx;
+      const ay = Math.abs(dy) < dead ? 0 : -dy;
+      return [ax, ay];
+    }
+
+    function pump() {
+      if (driving) return;
+      driving = true;
+      const step = () => {
+        const mx = axes.move[0], my = axes.move[1], lx = axes.look[0], ly = axes.look[1];
+        if (mx || my || lx || ly) {
+          yaw += lx * 0.03;
+          pitch = Math.max(-1.15, Math.min(1.15, pitch + ly * 0.022));
+          const step = 0.045;
+          px += (Math.sin(yaw) * my + Math.cos(yaw) * mx) * step;
+          pz += (-Math.cos(yaw) * my + Math.sin(yaw) * mx) * step;
+          const span = Math.hypot(px, pz);
+          if (span < 0.75) { px *= 0.75 / span; pz *= 0.75 / span; }
+          if (span > 8) { px *= 8 / span; pz *= 8 / span; }
+          drawBody();
+        }
+        if (heldSticks.size) requestAnimationFrame(step);
+        else driving = false;
+      };
+      requestAnimationFrame(step);
+    }
+
+    function bindStick(id, name) {
+      const stick = document.getElementById(id);
+      stick.addEventListener("pointerdown", (e) => {
+        heldSticks.add(name);
+        stick.setPointerCapture(e.pointerId);
+        axes[name] = stickAxis(stick, e.clientX, e.clientY);
+        pump();
+      });
+      stick.addEventListener("pointermove", (e) => {
+        if (!heldSticks.has(name)) return;
+        axes[name] = stickAxis(stick, e.clientX, e.clientY);
+      });
+      const release = () => {
+        heldSticks.delete(name);
+        axes[name] = [0, 0];
+        stick.querySelector("i").style.transform = "";
+      };
+      stick.addEventListener("pointerup", release);
+      stick.addEventListener("pointercancel", release);
+    }
+    bindStick("stick-move", "move");
+    bindStick("stick-look", "look");
+    window.addEventListener("resize", drawBody);
+
+  </script>
+</body>
+</html>
